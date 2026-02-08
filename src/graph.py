@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from tools.pdf_tools import PdfRag
 from tools.csv_tools import analyze_csv
 from tools.weather_tools import get_weather_forecast, derive_dispatch_weather_risk
-from tools.email_tools import send_email_gmail_smtp
+from tools.email_tools import send_email_smtp
 from agents import run_context_agent, run_ops_agent, run_planner_agent, run_report_agent
 
 load_dotenv()
@@ -98,8 +98,9 @@ def node_email(state: AppState) -> AppState:
         return {}
 
     subject = "MSBA Ops Multi-Agent Dispatch Report"
-    send_email_gmail_smtp(subject=subject, html_body=state["report_html"], to_email=to_email)
+    send_email_smtp(subject=subject, html_body=state["report_html"], to_email=to_email)
     return {}
+
 
 
 def build_graph():

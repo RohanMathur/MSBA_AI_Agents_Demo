@@ -3,7 +3,13 @@ from typing import Dict, Any
 from langchain_openai import ChatOpenAI
 from prompts import PDF_CONTEXT_PROMPT, OPS_ANALYSIS_PROMPT, PLANNER_PROMPT, REPORT_PROMPT
 
-llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0.2)
+llm = ChatOpenAI(
+    model="gpt-4.1-mini",
+    temperature=0.2,
+    tags=["msba-demo", "multi-agent"],
+    metadata={"repo": "MSBA_AI_Agents_Demo"}
+)
+
 
 def run_context_agent(snippets: str) -> str:
     return llm.invoke(PDF_CONTEXT_PROMPT.format_messages(snippets=snippets)).content

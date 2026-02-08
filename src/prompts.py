@@ -1,4 +1,5 @@
-from langchain.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
+
 
 PDF_CONTEXT_PROMPT = ChatPromptTemplate.from_messages([
     ("system",

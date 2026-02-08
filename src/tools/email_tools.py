@@ -1,15 +1,19 @@
 from __future__ import annotations
 import os
 import smtplib
-from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from dotenv import load_dotenv
+from email.mime.text import MIMEText
 
-load_dotenv()
 
-def send_email_zoho_smtp(subject: str, html_body: str, to_email: str) -> None:
-    user = os.environ["ZOHO_SMTP_USER"]
-    app_pw = os.environ["ZOHO_SMTP_APP_PASSWORD"]
+def send_email_smtp(subject: str, html_body: str, to_email: str) -> None:
+    """
+    Generic SMTP sender. Works with Zoho if env vars are set:
+      SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD
+    """
+    host = os.environ["SMTP_HOST"]
+    port = int(os.environ.get("SMTP_PORT", "465"))
+    user = os.environ["SMTP_USER"]
+    password = os.environ["SMTP_PASSWORD"]
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
@@ -17,6 +21,12 @@ def send_email_zoho_smtp(subject: str, html_body: str, to_email: str) -> None:
     msg["To"] = to_email
     msg.attach(MIMEText(html_body, "html"))
 
-    with smtplib.SMTP_SSL("smtp.zoho.com", 465, timeout=10) as server:
-        server.login(user, app_pw)
-        server.sendmail(user, [to_email], msg.as_string())
+    if port == 465:
+        with smtplib.SMTP_SSL(host, port) as server:
+            server.login(user, password)
+            server.sendmail(user, [to_email], msg.as_string())
+    else:
+        with smtplib.SMTP(host, port) as server:
+            server.starttls()
+            server.login(user, password)
+            server.sendmail(user, [to_email], msg.as_string())
