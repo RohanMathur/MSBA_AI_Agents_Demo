@@ -16,8 +16,13 @@ Multi-agent system for operations/dispatch planning:
 ## Setup
 ```bash
 python3.11 -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate 
+windows: .\.ms\Scripts\activate
 pip install -r requirements.txt
+windows: python -m pip install -r requirements.txt
 
 cp .env.example .env
 # fill OPENAI_API_KEY and Gmail app password
+
+windows:  python src/main.py
+```

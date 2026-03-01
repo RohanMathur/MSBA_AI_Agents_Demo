@@ -9,7 +9,8 @@ from tools.pdf_tools import PdfRag
 from tools.csv_tools import analyze_csv
 from tools.weather_tools import get_weather_forecast, derive_dispatch_weather_risk
 from tools.email_tools import send_email_smtp
-from agents import run_context_agent, run_ops_agent, run_planner_agent, run_report_agent
+from agents import run_context_agent, run_ops_agent, run_planner_agent
+from report_template import build_report_html
 
 load_dotenv()
 
@@ -76,14 +77,16 @@ def node_planner(state: AppState) -> AppState:
         business_context=state.get("business_context", ""),
         ops_insights=state.get("ops_insights", ""),
         weather_risk=state.get("weather_risk", {}),
+        kpis=state.get("csv_kpis", {}),
     )
     return {"dispatch_plan": plan}
 
 
 def node_report(state: AppState) -> AppState:
-    html = run_report_agent(
+    html = build_report_html(
         business_context=state.get("business_context", ""),
         kpis=state.get("csv_kpis", {}),
+        ops_insights=state.get("ops_insights", ""),
         anomaly_highlights=state.get("anomalies_md", "(none)"),
         weather_risk=state.get("weather_risk", {}),
         dispatch_plan=state.get("dispatch_plan", ""),

@@ -1,9 +1,15 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, Any, Tuple, List
+import math
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import IsolationForest
+
+# Truck calculation when volume not in CSV
+VOLUME_PER_SHIPMENT_ASSUMED = 1200  # units per shipment
+TRUCK_CAPACITY_UNITS = 10_000
+PACKING_BUFFER = 1.10
 
 
 @dataclass
@@ -39,13 +45,56 @@ def analyze_csv(csv_path: str) -> CsvAnalysisResult:
         "columns": list(df.columns),
     }
 
-    # Generic KPI examples: you will tailor later once we see headers
-    kpis: Dict[str, Any] = {}
+    # Real KPIs from the data (so the report shows actual numbers, not placeholders)
+    kpis: Dict[str, Any] = {
+        "total_shipments": int(df.shape[0]),
+        "total_columns": int(df.shape[1]),
+    }
     numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-
     if numeric_cols:
         kpis["numeric_columns_count"] = len(numeric_cols)
-        kpis["rows_count"] = int(df.shape[0])
+
+    # Counts for common operational columns (use actual column names if present)
+    for col in ["unique_item_id", "item_id", "dispatch_location"]:
+        if col in df.columns:
+            missing = df[col].isna() | (df[col].astype(str).str.strip() == "")
+            n_missing = int(missing.sum())
+            n_valid = int((~missing).sum())
+            kpis[f"shipments_with_missing_{col}"] = n_missing
+            kpis[f"valid_shipments_{col}"] = n_valid
+    if "unique_item_id" in df.columns:
+        missing_uid = df["unique_item_id"].isna() | (df["unique_item_id"].astype(str).str.strip() == "")
+        kpis["excluded_shipments_missing_unique_id"] = int(missing_uid.sum())
+        kpis["valid_shipment_count"] = int((~missing_uid).sum())
+    if "dispatch_location" in df.columns:
+        loc_counts = df["dispatch_location"].value_counts()
+        kpis["dispatch_location_breakdown"] = {str(k): int(v) for k, v in loc_counts.head(15).items()}
+    if "item_name" in df.columns:
+        item_counts = df["item_name"].value_counts()
+        kpis["item_breakdown"] = {str(k): int(v) for k, v in item_counts.head(10).items()}
+
+    # Required trucks: use volume column if present, else estimate from valid shipment count
+    valid_count = kpis.get("valid_shipment_count", int(df.shape[0]))
+    total_volume = None
+    volume_col = None
+    for c in df.columns:
+        if "volume" in c.lower() and pd.api.types.is_numeric_dtype(df[c]):
+            volume_col = c
+            break
+    if volume_col:
+        total_volume = float(df[volume_col].sum())
+        kpis["total_volume_units"] = int(round(total_volume))
+        kpis["volume_source"] = "from_data"
+    else:
+        total_volume = valid_count * VOLUME_PER_SHIPMENT_ASSUMED
+        kpis["estimated_volume_units"] = int(total_volume)
+        kpis["volume_per_shipment_assumed"] = VOLUME_PER_SHIPMENT_ASSUMED
+        kpis["volume_source"] = "estimated"
+
+    if total_volume is not None:
+        buffered = total_volume * PACKING_BUFFER
+        kpis["required_trucks"] = max(1, math.ceil(buffered / TRUCK_CAPACITY_UNITS))
+        kpis["buffered_volume_units"] = int(round(buffered))
 
     # Anomalies on numeric cols
     anomalies = pd.DataFrame()
