@@ -16,3 +16,4 @@ chroma_db/
 
 # logs
 *.log
+.env
